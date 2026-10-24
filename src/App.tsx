@@ -83,6 +83,7 @@ export default function App() {
   const [online, setOnline] = useState(navigator.onLine);
   const [install, setInstall] = useState<InstallEvent | null>(null);
   const [updateWorker, setUpdateWorker] = useState<ServiceWorker | null>(null);
+  const reloadForUpdate = useRef(false);
   const [offlineReady, setOfflineReady] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notify = useCallback((text: string) => {
@@ -155,13 +156,12 @@ export default function App() {
   }, [theme]);
   useEffect(() => {
     if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
-    let reload = false;
     const controller = () => {
-      if (reload) location.reload();
+      if (reloadForUpdate.current) location.reload();
       else setOfflineReady(true);
     };
     const message = (e: MessageEvent) => {
-      if (e.data === "RELOAD_TEMP") reload = true;
+      if (e.data === "RELOAD_TEMP") reloadForUpdate.current = true;
     };
     navigator.serviceWorker.addEventListener("controllerchange", controller);
     navigator.serviceWorker.addEventListener("message", message);
@@ -441,7 +441,11 @@ export default function App() {
               <button
                 className="button dark small"
                 disabled={saving || !!storageError}
-                onClick={() => updateWorker.postMessage("SKIP_WAITING")}
+                onClick={() => {
+                  reloadForUpdate.current = true;
+                  if (updateWorker.state === "activated") location.reload();
+                  else updateWorker.postMessage("SKIP_WAITING");
+                }}
               >
                 Обновить
               </button>

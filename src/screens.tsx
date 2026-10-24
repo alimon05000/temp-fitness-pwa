@@ -2066,13 +2066,20 @@ export function Coach({
                 </p>
                 {(!state.profile.coachUrl || !state.profile.aiEnabled) && (
                   <div className="notice">
-                    <strong>Тренер ещё не подключён</strong>
+                    <strong>
+                      {state.profile.coachUrl
+                        ? "Вы решаете, что видит тренер"
+                        : "Тренер ещё не подключён"}
+                    </strong>
                     <p>
-                      Нужны защищённый серверный API и ваше согласие на передачу
-                      данных. Остальные функции уже доступны.
+                      {state.profile.coachUrl
+                        ? "Разрешите передачу целей и предпочтений. История тренировок подключается отдельно и только по вашему выбору."
+                        : "Нужны защищённый серверный API и ваше согласие на передачу данных. Остальные функции уже доступны."}
                     </p>
                     <button className="button secondary" onClick={openSettings}>
-                      Настроить подключение
+                      {state.profile.coachUrl
+                        ? "Выбрать данные"
+                        : "Настроить подключение"}
                     </button>
                   </div>
                 )}

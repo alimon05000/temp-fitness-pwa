@@ -228,9 +228,11 @@ test("AI config is honest, privacy consent and plan acceptance boundaries", asyn
   await open(page);
   await page.getByRole("button", { name: "Открыть ИИ-тренера" }).click();
   await expect(
-    page.getByText("Тренер ещё не подключён", { exact: true }),
+    page.getByText(/Тренер ещё не подключён|Вы решаете, что видит тренер/),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Настроить подключение" }).click();
+  await page
+    .getByRole("button", { name: /Настроить подключение|Выбрать данные/ })
+    .click();
   await page
     .getByLabel("Адрес защищённого API")
     .fill("https://coach.example/api/coach");

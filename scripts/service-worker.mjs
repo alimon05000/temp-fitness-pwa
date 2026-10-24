@@ -69,7 +69,7 @@ await writeFile(
   `/* Generated app shell, build ${version}. No training data or API requests cached. */
 const PREFIX=${JSON.stringify(prefix)};const CACHE=PREFIX+'${version}';const BASE=${JSON.stringify(base)};const ASSETS=${JSON.stringify(urls)};
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS))));
-self.addEventListener('message',event=>{if(event.data==='SKIP_WAITING')event.waitUntil(self.clients.matchAll().then(clients=>{clients.forEach(c=>c.postMessage('RELOAD_TEMP'));return self.skipWaiting()}))});
+self.addEventListener('message',event=>{if(event.data==='SKIP_WAITING')event.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(clients=>{clients.filter(c=>new URL(c.url).pathname.startsWith(BASE)).forEach(c=>c.postMessage('RELOAD_TEMP'));return self.skipWaiting()}))});
 self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith(PREFIX)&&k!==CACHE).map(k=>caches.delete(k)))),self.clients.claim()])));
 self.addEventListener('fetch',event=>{const req=event.request;const url=new URL(req.url);if(req.method!=='GET'||url.origin!==self.location.origin||!url.pathname.startsWith(BASE)||url.pathname.includes('/api/'))return;
 if(req.mode==='navigate'){event.respondWith(fetch(req).then(r=>r.ok?r:caches.match(BASE)).catch(()=>caches.match(BASE)));return}
