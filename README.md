@@ -23,8 +23,7 @@
 Требуется Node.js 22.12+ (проверено на 24).
 
 ```powershell
-cd 'C:\Users\Алим\Documents\Codex\2026-10-24\d-x20\outputs\temp-fitness-pwa'
-npm ci
+cd '
 npm run dev
 ```
 
