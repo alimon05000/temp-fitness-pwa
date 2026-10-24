@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "temp-fitness-coach",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-24",
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "TOOKEN_BASE_URL": "https://tooken.club/v1",
+    "TOOKEN_MODEL": "gpt-6.1-sol",
+    "ALLOWED_ORIGIN": "https://alimon05000.github.io"
+  },
+  "durable_objects": { "bindings": [{ "name": "QUOTA", "class_name": "CoachQuota" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["CoachQuota"] }],
+  "observability": { "enabled": false }
+}

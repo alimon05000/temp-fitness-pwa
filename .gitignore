@@ -10,3 +10,6 @@ test-results/
 .vercel/
 coverage/
 *.log
+.wrangler/
+.dev.vars
+.dev.vars.*

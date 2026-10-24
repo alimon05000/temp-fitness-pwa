@@ -2,7 +2,7 @@
 
 ## Размещение
 
-Frontend — React 19, strict TypeScript, Vite. Статический `dist/` публикуется GitHub Actions в Pages владельца `alimon05000`. Пользователь явно исключил ChatGPT Sites. На GitHub Pages невозможно исполнять serverless API, поэтому `api/coach.ts` — отдельная Vercel Node-функция. Все базовые сценарии работают при полном отсутствии backend.
+Frontend — React 19, strict TypeScript, Vite. Статический `dist/` публикуется GitHub Actions в Pages владельца `alimon05000`. Пользователь явно исключил ChatGPT Sites. На GitHub Pages невозможно исполнять serverless API, поэтому `worker/index.ts` работает отдельно на Cloudflare Workers. Постоянный атомарный бюджет принадлежит SQLite Durable Object `CoachQuota`. `api/coach.ts` — запасной Node adapter, в текущем размещении не используется. Все базовые сценарии работают при полном отсутствии backend.
 
 ## Модель и хранение
 

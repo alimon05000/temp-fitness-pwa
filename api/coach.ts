@@ -1,68 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { timingSafeEqual, createHash } from "node:crypto";
 import { z } from "zod";
-import { proposalSchema } from "../src/domain.js";
+import { requestSchema, responseSchema } from "../server/contracts.js";
+export { requestSchema, responseSchema } from "../server/contracts.js";
 
-const contextSchema = z.object({
-  preferences: z.object({
-    sets: z.number().int().min(1).max(20),
-    rest: z.number().min(0).max(7200),
-    frequency: z.number().int().min(1).max(7),
-    duration: z.number().min(5).max(300),
-    level: z.string().max(50),
-    equipment: z.string().max(200),
-    limitations: z.string().max(500),
-  }),
-  goals: z
-    .array(
-      z.object({
-        name: z.string().max(160),
-        metric: z.string().max(30),
-        baseline: z.number().finite().nonnegative().max(1e9),
-        target: z.number().finite().nonnegative().max(1e9),
-        unit: z.string().max(160),
-      }),
-    )
-    .max(10),
-  history: z
-    .array(
-      z.object({
-        date: z.string().max(10),
-        name: z.string().max(160),
-        rpe: z.number().min(1).max(10),
-        wellbeing: z.string().max(160),
-        results: z
-          .array(
-            z.object({
-              exerciseId: z.string().max(100),
-              reps: z.number().nonnegative().max(1000),
-              weight: z.number().nonnegative().max(1000),
-              distance: z.number().nonnegative().max(1e6),
-              seconds: z.number().nonnegative().max(86400),
-            }),
-          )
-          .max(30),
-      }),
-    )
-    .max(10),
-});
-export const requestSchema = z.object({
-  message: z.string().trim().min(1).max(1500),
-  consent: z.literal(true),
-  context: contextSchema,
-  messages: z
-    .array(
-      z.object({
-        role: z.enum(["user", "assistant"]),
-        content: z.string().max(2000),
-      }),
-    )
-    .max(6),
-});
-export const responseSchema = z.object({
-  text: z.string().min(1).max(2000),
-  proposal: proposalSchema.optional(),
-});
 const memory = new Map<string, { value: number; until: number }>();
 async function increment(key: string, ttl: number): Promise<number> {
   const url = process.env.UPSTASH_REDIS_REST_URL;
@@ -129,12 +70,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       (!process.env.UPSTASH_REDIS_REST_URL ||
         !process.env.UPSTASH_REDIS_REST_TOKEN))
   )
-    return res
-      .status(503)
-      .json({
-        error:
-          "ИИ пока не подключён. Владелец должен настроить серверный ключ, код доступа и лимиты. Дневник работает без ИИ.",
-      });
+    return res.status(503).json({
+      error:
+        "ИИ пока не подключён. Владелец должен настроить серверный ключ, код доступа и лимиты. Дневник работает без ИИ.",
+    });
   const access = req.headers["x-coach-access"];
   if (typeof access !== "string" || access.length > 200 || !equal(access, code))
     return res
@@ -166,19 +105,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       (await increment(`temp:day:${day}`, 172800)) > 50
     ) {
       res.setHeader("Retry-After", "60");
-      return res
-        .status(429)
-        .json({
-          error:
-            "Лимит запросов исчерпан. Попробуйте позже. Общая квота: 50 запросов в сутки.",
-        });
+      return res.status(429).json({
+        error:
+          "Лимит запросов исчерпан. Попробуйте позже. Общая квота: 50 запросов в сутки.",
+      });
     }
   } catch {
-    return res
-      .status(503)
-      .json({
-        error: "Защита лимитов недоступна. Платные запросы временно отключены.",
-      });
+    return res.status(503).json({
+      error: "Защита лимитов недоступна. Платные запросы временно отключены.",
+    });
   }
   const model = process.env.TOOKEN_MODEL || "gpt-6.1-sol";
   const base = process.env.TOOKEN_BASE_URL || "https://tooken.club/v1";
@@ -213,14 +148,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
     );
     if (!upstream.ok)
-      return res
-        .status(upstream.status === 429 ? 429 : 502)
-        .json({
-          error:
-            upstream.status === 429
-              ? "Провайдер ограничил запросы. Попробуйте позже."
-              : `Сервис тренера ответил ошибкой ${upstream.status}. Проверьте серверную конфигурацию.`,
-        });
+      return res.status(upstream.status === 429 ? 429 : 502).json({
+        error:
+          upstream.status === 429
+            ? "Провайдер ограничил запросы. Попробуйте позже."
+            : `Сервис тренера ответил ошибкой ${upstream.status}. Проверьте серверную конфигурацию.`,
+      });
     const json = (await upstream.json()) as {
       choices?: { message?: { content?: string } }[];
     };
@@ -231,13 +164,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     );
     return res.status(200).json({ ...parsed, model });
   } catch (error) {
-    return res
-      .status(502)
-      .json({
-        error:
-          error instanceof Error && error.name === "TimeoutError"
-            ? "Тренер не ответил за 30 секунд. Повторите запрос."
-            : "Не удалось получить корректный ответ тренера. Повторите запрос или составьте тренировку вручную.",
-      });
+    return res.status(502).json({
+      error:
+        error instanceof Error && error.name === "TimeoutError"
+          ? "Тренер не ответил за 30 секунд. Повторите запрос."
+          : "Не удалось получить корректный ответ тренера. Повторите запрос или составьте тренировку вручную.",
+    });
   }
 }

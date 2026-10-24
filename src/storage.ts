@@ -10,7 +10,10 @@ class TempDB extends Dexie {
 export const db = new TempDB();
 export async function loadState(): Promise<State> {
   const saved = await db.snapshots.get("main");
-  return saved ? stateSchema.parse(saved.data) : makeInitialState();
+  const state = saved ? stateSchema.parse(saved.data) : makeInitialState();
+  if (!state.profile.coachUrl && import.meta.env.VITE_COACH_API_URL)
+    state.profile.coachUrl = import.meta.env.VITE_COACH_API_URL;
+  return state;
 }
 let queue = Promise.resolve();
 export function saveState(data: State) {

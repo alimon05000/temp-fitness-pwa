@@ -2,13 +2,14 @@ import { readdir, readFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 const patterns = [
-  /(?:sk-[A-Za-z0-9_-]{24,}|ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,})/g,
+  /(?:tc_live_[A-Za-z0-9]{32,}|sk-[A-Za-z0-9_-]{24,}|ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,})/g,
   /(?:TOOKEN_API_KEY|SUPABASE_SERVICE_ROLE_KEY|UPSTASH_REDIS_REST_TOKEN)\s*[:=]\s*["'](?!\s*["']|PASTE_|YOUR_|\$|process\.)([^"'\s]{12,})["']/g,
 ];
 const ignored = new Set([
   "node_modules",
   ".git",
   ".vercel",
+  ".wrangler",
   "test-results",
   "playwright-report",
 ]);
