@@ -162,6 +162,15 @@ export function Home({ state, actions }: Base & { actions: Actions }) {
     .sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))
     .slice(0, 3);
   const weekDays = Array.from({ length: 7 }, (_, i) => dayAfter(i - 6));
+  const weekSessions = completed.filter((s) => weekDays.includes(s.date));
+  const activeDays = new Set(weekSessions.map((s) => s.date)).size;
+  const weekMinutes = Math.round(
+    weekSessions.reduce((sum, s) => sum + elapsed(s), 0) / 60000,
+  );
+  const weekProgress = Math.min(
+    100,
+    (activeDays / state.profile.frequency) * 100,
+  );
   const last = [...completed].sort((a, b) =>
     `${b.date}${b.createdAt}`.localeCompare(`${a.date}${a.createdAt}`),
   )[0];
@@ -176,20 +185,162 @@ export function Home({ state, actions }: Base & { actions: Actions }) {
               ? `Привет, ${state.profile.name}!`
               : "Хороший день для движения"}
           </p>
-          <h1>
-            Мой прогресс<span className="title-dot">.</span>
-          </h1>
+          <h1>Мой прогресс</h1>
         </div>
         <button className="button secondary" onClick={() => actions.goal()}>
           <Plus size={18} />
           Добавить цель
         </button>
       </div>
+      <section
+        className="weekly-overview"
+        aria-label="Активность за последние 7 дней"
+      >
+        <div className="activity-board">
+          <div className="activity-board-top">
+            <span>
+              <Flame size={17} /> Активность
+            </span>
+            <span className="board-period">Последние 7 дней</span>
+          </div>
+          <div className="activity-board-body">
+            <div className="activity-score">
+              <span className="board-label">Ваш ритм</span>
+              <strong>
+                {activeDays}
+                <span> / {state.profile.frequency}</span>
+              </strong>
+              <span className="board-label">активных дней / цель</span>
+            </div>
+            <div
+              className="activity-orbit"
+              role="img"
+              aria-label={`Ориентир недели выполнен на ${Math.round(weekProgress)}%`}
+            >
+              <svg viewBox="0 0 120 120" aria-hidden="true">
+                <circle cx="60" cy="60" r="49" className="orbit-track" />
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="49"
+                  className="orbit-progress"
+                  strokeDasharray={`${weekProgress * 3.079} 308`}
+                />
+              </svg>
+              <Activity size={34} aria-hidden="true" />
+            </div>
+          </div>
+          <div className="board-metrics">
+            <div>
+              <strong>{weekSessions.length}</strong>
+              <span>тренировок</span>
+            </div>
+            <div>
+              <strong>
+                {weekMinutes}
+                <small> мин</small>
+              </strong>
+              <span>в тренировках</span>
+            </div>
+            <button
+              onClick={() => actions.navigate("progress")}
+              aria-label="Открыть аналитику активности"
+            >
+              <ArrowRight size={21} />
+            </button>
+          </div>
+        </div>
+        <div className="week-card card">
+          <div className="row">
+            <h2 className="grow">Каждый день в счёт</h2>
+            <CalendarDays size={19} className="muted" />
+          </div>
+          <div className="week-rhythm">
+            {weekDays.map((d) => (
+              <div key={d}>
+                <small>
+                  {new Date(`${d}T12:00:00`).toLocaleDateString("ru-RU", {
+                    weekday: "short",
+                  })}
+                </small>
+                <span
+                  className={
+                    completed.some((s) => s.date === d)
+                      ? "done"
+                      : d === today()
+                        ? "current"
+                        : ""
+                  }
+                >
+                  {completed.some((s) => s.date === d) ? (
+                    <Check size={17} />
+                  ) : (
+                    new Date(`${d}T12:00:00`).getDate()
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p>
+            {activeDays
+              ? "Двигайтесь в своём темпе. Регулярность важнее рекордов."
+              : "Одна тренировка — уже начало. Выберите занятие ниже."}
+          </p>
+          <button
+            className="button text"
+            onClick={() => actions.navigate("calendar")}
+          >
+            Открыть календарь <ChevronRight size={16} />
+          </button>
+        </div>
+      </section>
       <div className="dashboard-grid">
         <div className="dashboard-main">
+          <SectionTitle title="Начать в своём ритме" />
+          <div className="quick-grid">
+            <button
+              className="quick-card coral"
+              onClick={() => actions.start(quickTemplate(state, "run"))}
+            >
+              <SportIcon id="run" size={26} />
+              <strong>Начать бег</strong>
+              <span>
+                Контрольный 1 км <ArrowRight size={16} />
+              </span>
+            </button>
+            <button
+              className="quick-card green"
+              onClick={() => actions.start(quickTemplate(state, "pullup"))}
+            >
+              <SportIcon id="pullup" size={26} />
+              <strong>Подтягивания</strong>
+              <span>
+                {state.profile.sets} подхода · свой темп{" "}
+                <ArrowRight size={16} />
+              </span>
+            </button>
+            <button
+              className="quick-card neutral"
+              onClick={() => actions.template()}
+            >
+              <Plus size={26} />
+              <strong>Своя тренировка</strong>
+              <span>
+                Соберите занятие <ArrowRight size={16} />
+              </span>
+            </button>
+            <button className="quick-card neutral" onClick={actions.manual}>
+              <TrendingUp size={26} />
+              <strong>Записать результат</strong>
+              <span>
+                Уже потренировались? <ArrowRight size={16} />
+              </span>
+            </button>
+          </div>
+
           <div className="section-title compact">
-            <h2>Ваши ориентиры</h2>
-            <span className="muted small">Каждый шаг имеет значение</span>
+            <h2>Ваши цели</h2>
+            <span className="muted small">От результата к результату</span>
           </div>
           <div className="goals-grid">
             {state.goals.map((g) => (
@@ -205,25 +356,20 @@ export function Home({ state, actions }: Base & { actions: Actions }) {
                 <span className="sport-icon coral">
                   <Target size={25} />
                 </span>
-                <h2>
-                  Большая цель.
-                  <br />
-                  Ваш первый шаг.
-                </h2>
-                <p>
-                  Добавьте исходный результат и цель.
-                  <br />
-                  ТЕМП поможет увидеть путь между ними.
-                </p>
-                <button className="button dark" onClick={() => actions.goal()}>
+                <div className="grow">
+                  <h2>У каждого результата есть начало</h2>
+                  <p>
+                    Задайте исходный результат и цель, чтобы видеть свой
+                    прогресс.
+                  </p>
+                </div>
+                <button
+                  className="button secondary"
+                  onClick={() => actions.goal()}
+                >
                   <Plus size={18} />
                   Поставить цель
                 </button>
-                <div className="decorative-track" aria-hidden="true">
-                  <i />
-                  <i />
-                  <i />
-                </div>
               </div>
             )}
           </div>
@@ -298,47 +444,6 @@ export function Home({ state, actions }: Base & { actions: Actions }) {
               </div>
             )}
           </div>
-          <SectionTitle title="Начать в своём ритме" />
-          <div className="quick-grid">
-            <button
-              className="quick-card coral"
-              onClick={() => actions.start(quickTemplate(state, "run"))}
-            >
-              <SportIcon id="run" size={26} />
-              <strong>Начать бег</strong>
-              <span>
-                Контрольный 1 км <ArrowRight size={16} />
-              </span>
-            </button>
-            <button
-              className="quick-card green"
-              onClick={() => actions.start(quickTemplate(state, "pullup"))}
-            >
-              <SportIcon id="pullup" size={26} />
-              <strong>Подтягивания</strong>
-              <span>
-                {state.profile.sets} подхода · свой темп{" "}
-                <ArrowRight size={16} />
-              </span>
-            </button>
-            <button
-              className="quick-card neutral"
-              onClick={() => actions.template()}
-            >
-              <Plus size={26} />
-              <strong>Своя тренировка</strong>
-              <span>
-                Соберите занятие <ArrowRight size={16} />
-              </span>
-            </button>
-            <button className="quick-card neutral" onClick={actions.manual}>
-              <TrendingUp size={26} />
-              <strong>Записать результат</strong>
-              <span>
-                Уже потренировались? <ArrowRight size={16} />
-              </span>
-            </button>
-          </div>
           {last && (
             <>
               <SectionTitle title="Последняя тренировка" />
@@ -364,63 +469,14 @@ export function Home({ state, actions }: Base & { actions: Actions }) {
           )}
         </div>
         <aside className="dashboard-aside">
-          <div className="card rhythm-card">
-            <div className="row">
-              <span className="sport-icon coral">
-                <Flame size={22} />
-              </span>
-              <h3>Ваш ритм</h3>
-            </div>
-            <div className="rhythm-number">
-              {
-                new Set(
-                  completed
-                    .filter((s) => weekDays.includes(s.date))
-                    .map((s) => s.date),
-                ).size
-              }
-              <span>активных дней за 7 дней</span>
-            </div>
-            <div className="week-rhythm">
-              {weekDays.map((d) => (
-                <div key={d}>
-                  <span
-                    className={
-                      completed.some((s) => s.date === d)
-                        ? "done"
-                        : d === today()
-                          ? "current"
-                          : ""
-                    }
-                  >
-                    {completed.some((s) => s.date === d) ? (
-                      <Check size={16} />
-                    ) : (
-                      new Date(`${d}T12:00:00`).getDate()
-                    )}
-                  </span>
-                  <small>
-                    {new Date(`${d}T12:00:00`).toLocaleDateString("ru-RU", {
-                      weekday: "narrow",
-                    })}
-                  </small>
-                </div>
-              ))}
-            </div>
-            <p className="small muted">
-              {completed.length
-                ? "Регулярность складывается из небольших шагов."
-                : "Здесь появится ваша активность. Начните, когда будете готовы."}
-            </p>
-          </div>
           <div className="coach-promo">
             <span className="coach-mark">
               <Sparkles size={24} />
             </span>
             <Badge>ИИ-тренер</Badge>
             <h2>
-              План под вас.
-              <br />И под вашу жизнь.
+              Следующий шаг.
+              <br />С вашим тренером.
             </h2>
             <p>
               {state.profile.coachUrl
@@ -481,9 +537,7 @@ export function Training({ state, actions }: Base & { actions: Actions }) {
       <div className="page-heading">
         <div>
           <p className="greeting">Время для себя</p>
-          <h1>
-            Тренировка<span className="title-dot">.</span>
-          </h1>
+          <h1>Тренировка</h1>
         </div>
         <button className="button secondary" onClick={actions.manual}>
           <Plus size={18} />
@@ -1264,9 +1318,7 @@ export function Progress({ state, actions }: Base & { actions: Actions }) {
       <div className="page-heading">
         <div>
           <p className="greeting">Реальные усилия. Реальные изменения.</p>
-          <h1>
-            Аналитика<span className="title-dot">.</span>
-          </h1>
+          <h1>Аналитика</h1>
         </div>
         <button className="button secondary" onClick={actions.manual}>
           <Plus size={18} />
@@ -1554,9 +1606,7 @@ export function Catalog({
       <div className="page-heading">
         <div>
           <p className="greeting">Движение бывает разным</p>
-          <h1>
-            Упражнения<span className="title-dot">.</span>
-          </h1>
+          <h1>Упражнения</h1>
         </div>
         <button className="button secondary" onClick={() => editExercise()}>
           <Plus size={18} />
@@ -1824,9 +1874,7 @@ export function Calendar({
       <div className="page-heading">
         <div>
           <p className="greeting">Оставьте место для движения</p>
-          <h1>
-            Календарь<span className="title-dot">.</span>
-          </h1>
+          <h1>Календарь</h1>
         </div>
         <button className="button secondary" onClick={() => actions.schedule()}>
           <Plus size={18} />
@@ -2042,15 +2090,47 @@ export function Coach({
       <div className="page-heading">
         <div>
           <p className="greeting">Обсудим ваш следующий шаг</p>
-          <h1>
-            Ваш ИИ-тренер<span className="title-dot">.</span>
-          </h1>
+          <h1>Ваш ИИ-тренер</h1>
         </div>
         <Badge>
           <Sparkles size={15} />
           {model || "Tooken · gpt-6.1-sol"}
         </Badge>
       </div>
+      <section
+        className="coach-access-panel card"
+        aria-label="Доступ к ИИ-тренеру"
+      >
+        <div className="access-explanation">
+          <span className="sport-icon purple">
+            <Sparkles size={22} />
+          </span>
+          <div>
+            <h2>Подключите своего тренера</h2>
+            <p>
+              Вставьте код доступа из нашего чата. Затем выберите данные,
+              которыми готовы поделиться.
+            </p>
+          </div>
+        </div>
+        <Field
+          label="Код доступа к серверу"
+          hint="Отдельный код из чата, не API-ключ Tooken. Вводится заново при открытии этого экрана."
+        >
+          <input
+            type="password"
+            autoComplete="off"
+            placeholder="Вставьте код из чата"
+            value={access}
+            maxLength={200}
+            onChange={(e) => setAccess(e.target.value.trim())}
+          />
+        </Field>
+        <button className="button secondary" onClick={openSettings}>
+          {state.profile.aiEnabled ? "Разрешения ИИ" : "Выбрать данные"}
+          <ChevronRight size={16} />
+        </button>
+      </section>
       <div className="coach-layout">
         <div className="card chat-card">
           <div className="chat-messages">
@@ -2076,11 +2156,6 @@ export function Coach({
                         ? "Разрешите передачу целей и предпочтений. История тренировок подключается отдельно и только по вашему выбору."
                         : "Нужны защищённый серверный API и ваше согласие на передачу данных. Остальные функции уже доступны."}
                     </p>
-                    <button className="button secondary" onClick={openSettings}>
-                      {state.profile.coachUrl
-                        ? "Выбрать данные"
-                        : "Настроить подключение"}
-                    </button>
                   </div>
                 )}
               </div>
@@ -2246,18 +2321,6 @@ export function Coach({
               Управлять данными
               <ChevronRight size={16} />
             </button>
-            <Field
-              label="Код доступа к серверу"
-              hint="От владельца сервера. Это не ключ Tooken. Не сохраняется."
-            >
-              <input
-                type="password"
-                autoComplete="off"
-                value={access}
-                maxLength={200}
-                onChange={(e) => setAccess(e.target.value)}
-              />
-            </Field>
           </div>
           <div className="card prompt-card">
             <h3>С чего начнём?</h3>

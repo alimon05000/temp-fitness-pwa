@@ -47,6 +47,13 @@ test("goal, 3:58 record, analytics and persistence", async ({ page }) => {
   await page.getByRole("button", { name: "Сохранить результат" }).click();
   await stored(page);
   await expect(page.locator(".goal-card")).toContainText("3:58");
+  await expect(page.locator(".activity-score > strong")).toHaveText("1 / 3");
+  await expect(page.locator(".board-metrics > div").nth(0)).toHaveText(
+    "1тренировок",
+  );
+  await expect(page.locator(".board-metrics > div").nth(1)).toContainText(
+    "4 мин",
+  );
   const state = await snapshot(page);
   expect(state.sessions[0].results[0].seconds).toBe(238);
   expect(state.goals[0]).toMatchObject({ baseline: 243, target: 210 });
@@ -75,6 +82,11 @@ test("four pull-up sets, rest reload, honest maximum and finish", async ({
 }) => {
   await open(page);
   await page.locator(".quick-card.green").click();
+  await page.screenshot({
+    path: "test-results/design-390-active.png",
+    fullPage: true,
+    animations: "disabled",
+  });
   const values = [11, 10, 9, 9];
   for (let i = 0; i < values.length; i++) {
     await page
@@ -177,7 +189,7 @@ test("custom exercise and mixed template, schedule and move", async ({
   await page.getByRole("button", { name: "Сохранить в календарь" }).click();
   await page.getByRole("button", { name: "Открыть календарь" }).click();
   await expect(
-    page.getByRole("heading", { name: "Календарь.", exact: true }),
+    page.getByRole("heading", { name: "Календарь", exact: true }),
   ).toBeVisible();
   await expect(page.locator(".mode-card")).toContainText("Утренний комплекс");
   await page.getByRole("button", { name: "Перенести / заменить" }).click();
@@ -309,15 +321,25 @@ test("responsive navigation has no horizontal overflow at 320, 390, 768 and 1440
       await expect(page.locator("h1")).toHaveText(
         (
           {
-            home: "Мой прогресс.",
-            workout: "Тренировка.",
-            progress: "Аналитика.",
-            catalog: "Упражнения.",
-            calendar: "Календарь.",
-            coach: "Ваш ИИ-тренер.",
+            home: "Мой прогресс",
+            workout: "Тренировка",
+            progress: "Аналитика",
+            catalog: "Упражнения",
+            calendar: "Календарь",
+            coach: "Ваш ИИ-тренер",
           } as Record<string, string>
         )[view],
       );
+      if (
+        [390, 1440].includes(width) &&
+        ["home", "workout", "coach", "catalog"].includes(view)
+      ) {
+        await page.screenshot({
+          path: `test-results/design-${width}-${view}.png`,
+          fullPage: true,
+          animations: "disabled",
+        });
+      }
       await expect
         .poll(() =>
           page.evaluate(
@@ -325,6 +347,38 @@ test("responsive navigation has no horizontal overflow at 320, 390, 768 and 1440
           ),
         )
         .toBeLessThanOrEqual(1);
+    }
+  }
+});
+
+test("redesigned summary and coach setup remain readable in dark mode", async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await open(page);
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const view of ["home", "coach"]) {
+      await page.evaluate((v) => {
+        location.hash = v;
+      }, view);
+      await expect(
+        page.locator(
+          view === "home" ? ".activity-board" : ".coach-access-panel",
+        ),
+      ).toBeVisible();
+      await expect
+        .poll(() =>
+          page.evaluate(
+            () => document.documentElement.scrollWidth - innerWidth,
+          ),
+        )
+        .toBeLessThanOrEqual(1);
+      await page.screenshot({
+        path: `test-results/design-${width}-${view}-dark.png`,
+        fullPage: true,
+        animations: "disabled",
+      });
     }
   }
 });
